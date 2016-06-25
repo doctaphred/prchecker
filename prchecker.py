@@ -1,5 +1,5 @@
 #!/usr/bin/env python3 -u
-"""Run some tests (currently just flake8) on all open pull requests!
+"""Run some tests on all open pull requests!
 
 Reads the following environment variables:
 
@@ -9,8 +9,7 @@ Reads the following environment variables:
     GITHUB_OWNER - the name of the repository owner
     GITHUB_REPO - the name of the repository to check
     WORK_TREE - path to a local clone of the repository
-    FLAKE8_PATH - path to a flake8 executable
-    FLAKE8_CONFIG_PATH - path to a setup.cfg file
+    CHECKER_PATH - path to an executable script to run
 
 Note that this program requires an existing local clone of the
 repository, which may be arbitrarily modified. Don't point it to your
@@ -40,6 +39,7 @@ class ItemAttrs:
 
 # TODO: ChainMap with sys.argv, setup.cfg, etc.
 env = ItemAttrs(os.environ)
+check = Command(env.CHECKER_PATH)
 
 
 @contextmanager
@@ -69,8 +69,8 @@ def merge_and_check(base, head):
     git.checkout('origin/' + base)
     # Merge the working tree, but don't modify the index
     git.merge('origin/' + head, no_commit=True)
-    # Run some tests!
-    Command(env.FLAKE8_PATH)('cemt', config=env.FLAKE8_CONFIG_PATH)
+    # Check the PR!
+    check()
 
 
 def check_open_pull_requests(repo):
@@ -80,7 +80,7 @@ def check_open_pull_requests(repo):
             try:
                 merge_and_check(pr.base.ref, pr.head.ref)
             except ErrorReturnCode as e:
-                print('✘ Problem: {}'.format(e))
+                print('✘ Problem: {}'.format(e), e.exit_code)
             else:
                 print('✔ Looks good!')
 
